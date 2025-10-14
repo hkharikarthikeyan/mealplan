@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,9 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChefHat } from 'lucide-react';
 import { toast } from 'sonner';
+import Lottie from 'lottie-react';
+import confettiAnimation from '../../USA confetti.json';
+import inventoryAnimation from '../../Inventory.json';
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +16,23 @@ export const Auth = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (showConfetti) {
+      // Play confetti twice without gap
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+        setTimeout(() => {
+          setShowConfetti(true);
+          setTimeout(() => {
+            setShowConfetti(false);
+          }, 2000);
+        }, 0);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti]);
   const navigate = useNavigate();
   const { login, register, continueAsGuest } = useAuth();
 
@@ -33,7 +53,10 @@ export const Auth = () => {
         await register({ email, password, name });
         toast.success('Account created successfully!');
       }
-      navigate('/home');
+      setShowConfetti(true);
+      setTimeout(() => {
+        navigate('/home');
+      }, 4000);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Authentication failed');
     } finally {
@@ -47,7 +70,13 @@ export const Auth = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background relative">
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50">
+          <Lottie animationData={confettiAnimation} loop={false} />
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">

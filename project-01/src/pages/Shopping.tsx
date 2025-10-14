@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import Lottie from 'lottie-react';
+import inventoryAnimation from '../../Inventory.json';
 
 const mockItems = [
   { id: 1, name: 'Chicken Breast', category: 'Meat', checked: false },
@@ -120,6 +122,10 @@ export const Shopping = () => {
       />
       
       <main className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto">
+        {/* Inventory Animation */}
+        <div className="w-full max-w-[200px] mx-auto mb-6">
+          <Lottie animationData={inventoryAnimation} loop={true} />
+        </div>
         {isAuthenticated ? (
           <Tabs defaultValue="recent" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">

@@ -24,7 +24,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # CORS with security
 CORS(app, 
-     origins=os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(','),
+     origins=['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080'],
      supports_credentials=True,
      allow_headers=['Content-Type', 'Authorization'],
      methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -54,7 +54,7 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* https://localhost:*"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
@@ -107,6 +107,27 @@ def require_auth(f):
         request.user_id = user_id
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/')
+def home():
+    return jsonify({
+        'message': 'Mealplan API is running',
+        'version': '1.0.0',
+        'endpoints': {
+            'auth': '/api/auth/*',
+            'profile': '/api/profile',
+            'clients': '/api/clients',
+            'recipes': '/api/recipes'
+        }
+    })
+
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'healthy', 'timestamp': datetime.datetime.utcnow().isoformat()})
+
+@app.route('/api/test')
+def test_connection():
+    return jsonify({'message': 'Backend connection successful', 'status': 'ok'})
 
 @app.route('/api/auth/register', methods=['POST'])
 @limiter.limit("5 per minute")
