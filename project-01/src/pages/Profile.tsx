@@ -78,31 +78,6 @@ export const Profile = () => {
             <p className="text-muted-foreground mb-6">
               You're currently using guest mode with limited features. Sign up to unlock your full profile and save your meal plans!
             </p>
-            <div className="space-y-3">
-              <Button 
-                className="w-full" 
-                onClick={() => navigate('/auth')}
-              >
-                Sign Up for More Features
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => navigate('/home')}
-              >
-                Continue as Guest
-              </Button>
-            </div>
-          <Card className="p-8 text-center bg-muted/30">
-            <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <User className="w-12 h-12 text-primary" />
-            </div>
-            
-            <h2 className="text-2xl font-bold mb-4">Guest Mode</h2>
-            <p className="text-muted-foreground mb-6">
-              You're currently using guest mode with limited features. Sign up to create and manage your profile!
-            </p>
-            
             <div className="space-y-4 mb-6">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span className="w-2 h-2 bg-primary rounded-full"></span>
@@ -132,7 +107,7 @@ export const Profile = () => {
             <Button 
               variant="outline" 
               className="w-full h-12" 
-              onClick={() => navigate('/more')}
+              onClick={() => navigate('/home')}
             >
               Continue as Guest
             </Button>

@@ -9,11 +9,15 @@ export interface User {
 }
 
 export interface Recipe {
-  id: number;
+  id?: number;
+  _id?: string;
   name: string;
-  time: string;
-  servings: number;
-  image: string;
+  time?: string;
+  servings?: number;
+  image?: string;
+  ingredients?: string;
+  instructions?: string;
+  created_at?: string;
 }
 
 export interface RecipeData {
@@ -37,14 +41,6 @@ export interface Client {
   status: string;
   created_at: string;
   last_updated: string;
-}
-
-export interface Recipe {
-  _id: string;
-  name: string;
-  ingredients: string;
-  instructions: string;
-  created_at: string;
 }
 
 export interface AuthResponse {
@@ -221,13 +217,15 @@ class ApiService {
   }
 
   async getRecipes(): Promise<RecipeData> {
-  async getRecipes(): Promise<Recipe[]> {
     const response = await fetch(`${API_BASE_URL}/recipes`, {
       headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get recipes');
+      // Return empty data for non-authenticated users
+      if (response.status === 401) {
+        return { saved: [], created: [], is_premium: false };
+      }
       const error = await response.json();
       throw new Error(error.error || 'Failed to get recipes');
     }
@@ -235,7 +233,6 @@ class ApiService {
     return response.json();
   }
 
-  async saveRecipes(recipes: RecipeData): Promise<{ message: string }> {
   async saveRecipe(name: string, ingredients: string, instructions: string): Promise<Recipe> {
     const response = await fetch(`${API_BASE_URL}/recipes`, {
       method: 'POST',
@@ -243,11 +240,6 @@ class ApiService {
         'Content-Type': 'application/json',
         ...this.getAuthHeaders(),
       },
-      body: JSON.stringify(recipes),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to save recipes');
       body: JSON.stringify({ name, ingredients, instructions }),
     });
 

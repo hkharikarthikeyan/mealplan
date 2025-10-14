@@ -24,10 +24,10 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # CORS with security
 CORS(app, 
-     origins=['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080'],
+     origins=['http://localhost:8080', 'http://localhost:8082', 'http://localhost:3000', 'http://127.0.0.1:8080'],
      supports_credentials=True,
      allow_headers=['Content-Type', 'Authorization'],
-     methods=['GET', 'POST', 'PUT', 'DELETE'])
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Rate limiting
 limiter = Limiter(
@@ -38,6 +38,10 @@ limiter = Limiter(
 
 @app.before_request
 def security_headers():
+    # Skip security checks for OPTIONS requests (CORS preflight)
+    if request.method == 'OPTIONS':
+        return
+    
     # Block requests with suspicious patterns
     user_agent = request.headers.get('User-Agent', '')
     if not user_agent or len(user_agent) < 10:
@@ -54,7 +58,7 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* https://localhost:*"
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* https://localhost:*; connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
@@ -382,58 +386,27 @@ def delete_client(client_id):
     
     return jsonify({'message': 'Client deleted successfully'}), 200
 
-# Recipe management endpoints for premium users
-@app.route('/api/recipes', methods=['GET'])
-@require_auth
-def get_recipes():
-    recipes = recipes_collection.find_one({'user_id': request.user_id})
-    if not recipes:
-        return jsonify({'saved': [], 'created': []}), 200
-    
-    return jsonify({
-        'saved': recipes.get('saved', []),
-        'created': recipes.get('created', [])
-    }), 200
-
-@app.route('/api/recipes', methods=['POST'])
-@require_auth
-def save_recipes():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-    
-    recipes_collection.update_one(
-        {'user_id': request.user_id},
-        {'$set': {
-            'saved': data.get('saved', []),
-            'created': data.get('created', []),
-            'updated_at': datetime.datetime.utcnow()
-        }},
-        upsert=True
-    )
-    
-    return jsonify({'message': 'Recipes saved successfully'}), 200
-# Recipe management endpoints (Premium feature)
+# Recipe management endpoints
 @app.route('/api/recipes', methods=['GET'])
 @require_auth
 def get_recipes():
     user = users_collection.find_one({'_id': ObjectId(request.user_id)})
-    if not user or not user.get('is_premium', False):
-        return jsonify({'error': 'Premium subscription required'}), 403
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
     
     recipes = list(recipes_collection.find({'user_id': request.user_id}))
     for recipe in recipes:
         recipe['_id'] = str(recipe['_id'])
     
-    return jsonify(recipes), 200
+    return jsonify({
+        'saved': recipes,
+        'created': recipes,
+        'is_premium': user.get('is_premium', False)
+    }), 200
 
 @app.route('/api/recipes', methods=['POST'])
 @require_auth
 def save_recipe():
-    user = users_collection.find_one({'_id': ObjectId(request.user_id)})
-    if not user or not user.get('is_premium', False):
-        return jsonify({'error': 'Premium subscription required'}), 403
-    
     data = request.get_json()
     if not data or not data.get('name'):
         return jsonify({'error': 'Recipe name required'}), 400

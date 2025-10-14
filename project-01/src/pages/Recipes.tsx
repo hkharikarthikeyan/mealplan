@@ -11,15 +11,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSavedRecipes } from '@/contexts/SavedRecipesContext';
 import { useToast } from '@/hooks/use-toast';
 
-interface Recipe {
-  id: number;
-  name: string;
-  image: string;
-  time: string;
-  servings: number;
-  category?: string;
-}
-
 const relevantRecipes = [
   { id: 1, name: 'Avocado Toast', image: '🥑', time: '5 min', servings: 1, category: 'Breakfast' },
   { id: 2, name: 'Greek Yogurt Bowl', image: '🥣', time: '3 min', servings: 1, category: 'Breakfast' },
@@ -32,7 +23,7 @@ const relevantRecipes = [
 export const Recipes = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const { savedRecipes, unsaveRecipe } = useSavedRecipes();
+  const { savedRecipes, deleteRecipe } = useSavedRecipes();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,24 +34,24 @@ export const Recipes = () => {
   });
 
   // Filter saved recipes by search and selected category as well (category may be optional on saved recipes)
-  const filteredSavedRecipes = savedRecipes.filter((recipe: Recipe) => {
+  const filteredSavedRecipes = savedRecipes.filter((recipe) => {
     const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const recipeCategory = recipe.category;
+    const recipeCategory = (recipe as { category?: string }).category;
     const matchesCategory = selectedCategory === 'All' || recipeCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const handleUnsave = (recipeId: number, recipeName: string, e: React.MouseEvent) => {
+  const handleUnsave = (recipeId: string, recipeName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    unsaveRecipe(recipeId);
+    deleteRecipe(recipeId);
     toast({
       title: "Recipe removed",
       description: `${recipeName} removed from your recipes`,
     });
   };
 
-  const handleAddToMeal = (recipe: Recipe, e: React.MouseEvent) => {
+  const handleAddToMeal = (recipe: { name: string }, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     toast({
@@ -120,18 +111,18 @@ export const Recipes = () => {
                   <Link to={`/recipe/${recipe.id}`} className="block">
                     <div className="flex gap-3 sm:gap-4">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-muted rounded-xl sm:rounded-2xl flex items-center justify-center text-3xl sm:text-4xl shrink-0">
-                        {recipe.image}
+                        {(recipe as { image?: string }).image || '🍽️'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm sm:text-base text-foreground mb-1 sm:mb-2 line-clamp-2">{recipe.name}</h4>
                         <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 text-xs text-muted-foreground mb-2">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {recipe.time}
+                            {(recipe as { time?: string }).time || 'N/A'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
-                            {recipe.servings} servings
+                            {(recipe as { servings?: number }).servings || 1} servings
                           </span>
                         </div>
                         <span className="inline-block bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md">

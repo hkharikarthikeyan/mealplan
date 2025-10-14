@@ -49,14 +49,21 @@ export const Auth = () => {
       if (isLogin) {
         await login({ email, password });
         toast.success('Welcome back!');
+        setShowConfetti(true);
+        setTimeout(() => {
+          navigate('/home');
+        }, 4000);
       } else {
         await register({ email, password, name });
-        toast.success('Account created successfully!');
+        toast.success('Account created successfully! Please sign in.');
+        setShowConfetti(true);
+        setTimeout(() => {
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setName('');
+        }, 4000);
       }
-      setShowConfetti(true);
-      setTimeout(() => {
-        navigate('/home');
-      }, 4000);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Authentication failed');
     } finally {
