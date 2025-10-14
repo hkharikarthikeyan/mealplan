@@ -62,6 +62,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Clear local recipe data for free users
+    if (user && !user.is_premium) {
+      localStorage.removeItem(`savedRecipes_${user.id}`);
+    }
+    
     localStorage.removeItem('token');
     localStorage.removeItem('guestMode');
     localStorage.removeItem('savedRecipes');

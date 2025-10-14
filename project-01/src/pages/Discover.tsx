@@ -10,44 +10,55 @@ import { useSavedRecipes } from '@/contexts/SavedRecipesContext';
 import { useToast } from '@/hooks/use-toast';
 
 const mockRecipes = [
-  { id: 1, name: 'Grilled Chicken Salad', time: '25 min', servings: 2, image: '🥗' },
-  { id: 2, name: 'Spaghetti Carbonara', time: '30 min', servings: 4, image: '🍝' },
-  { id: 3, name: 'Avocado Toast', time: '10 min', servings: 1, image: '🥑' },
-  { id: 4, name: 'Veggie Stir Fry', time: '20 min', servings: 3, image: '🥘' },
-  { id: 5, name: 'Margherita Pizza', time: '45 min', servings: 4, image: '🍕' },
-  { id: 6, name: 'Caesar Salad', time: '15 min', servings: 2, image: '🥗' },
-  { id: 7, name: 'Beef Tacos', time: '35 min', servings: 4, image: '🌮' },
-  { id: 8, name: 'Chocolate Cake', time: '60 min', servings: 8, image: '🍰' },
+  { id: '1', name: 'Grilled Chicken Salad', ingredients: 'Chicken, lettuce, tomatoes', instructions: 'Grill chicken and mix with salad', image: '🥗' },
+  { id: '2', name: 'Spaghetti Carbonara', ingredients: 'Pasta, eggs, bacon, cheese', instructions: 'Cook pasta and mix with carbonara sauce', image: '🍝' },
+  { id: '3', name: 'Avocado Toast', ingredients: 'Bread, avocado, salt', instructions: 'Toast bread and top with mashed avocado', image: '🥑' },
+  { id: '4', name: 'Veggie Stir Fry', ingredients: 'Mixed vegetables, soy sauce', instructions: 'Stir fry vegetables with sauce', image: '🥘' },
+  { id: '5', name: 'Margherita Pizza', ingredients: 'Pizza dough, tomato, mozzarella', instructions: 'Bake pizza with toppings', image: '🍕' },
+  { id: '6', name: 'Caesar Salad', ingredients: 'Lettuce, croutons, parmesan', instructions: 'Mix salad with caesar dressing', image: '🥗' },
+  { id: '7', name: 'Beef Tacos', ingredients: 'Beef, tortillas, vegetables', instructions: 'Cook beef and assemble tacos', image: '🌮' },
+  { id: '8', name: 'Chocolate Cake', ingredients: 'Flour, cocoa, eggs, sugar', instructions: 'Bake chocolate cake', image: '🍰' },
 ];
 
 export const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { saveRecipe, unsaveRecipe, isRecipeSaved, createdRecipes } = useSavedRecipes();
+  const { saveRecipe, deleteRecipe, isRecipeSaved, savedRecipes, loading } = useSavedRecipes();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Combine mock recipes with user-created recipes
-  const allRecipes = [...createdRecipes, ...mockRecipes];
+  // Combine mock recipes with user-saved recipes
+  const allRecipes = [...savedRecipes, ...mockRecipes];
 
   const filteredRecipes = allRecipes.filter(recipe =>
     recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSaveToggle = (recipe: typeof mockRecipes[0], e: React.MouseEvent) => {
+  const handleSaveToggle = async (recipe: typeof mockRecipes[0], e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (isRecipeSaved(recipe.id)) {
-      unsaveRecipe(recipe.id);
+    try {
+      if (isRecipeSaved(recipe.id)) {
+        await deleteRecipe(recipe.id);
+        toast({
+          title: "Recipe removed",
+          description: `${recipe.name} removed from your recipes`,
+        });
+      } else {
+        await saveRecipe({
+          name: recipe.name,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions
+        });
+        toast({
+          title: "Recipe saved!",
+          description: `${recipe.name} added to your recipes`,
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Recipe removed",
-        description: `${recipe.name} removed from your recipes`,
-      });
-    } else {
-      saveRecipe(recipe);
-      toast({
-        title: "Recipe saved!",
-        description: `${recipe.name} added to your recipes`,
+        title: "Error",
+        description: "Failed to save recipe. Please try again.",
       });
     }
   };
@@ -96,11 +107,11 @@ export const Discover = () => {
                         <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {recipe.time}
+                            Quick & Easy
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
-                            {recipe.servings} servings
+                            Popular
                           </span>
                         </div>
                       </div>

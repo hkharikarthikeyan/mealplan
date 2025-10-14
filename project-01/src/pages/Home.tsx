@@ -306,12 +306,18 @@ export const Home = () => {
                       <Button
                         size="sm"
                         className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm md:text-base px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 rounded-md sm:rounded-lg w-full sm:w-auto min-w-[120px]"
+                    <div className="p-3 text-center border-t border-slate-600">
+                      <p className="text-xs text-gray-400 mb-2">Want more weeks?</p>
+                      <Button
+                        size="sm"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
                         onClick={() => navigate('/auth')}
                       >
                         Sign Up for More
                       </Button>
                     </div>
                   )}"
+                  )}
                 </div>
               </Card>
             )}
