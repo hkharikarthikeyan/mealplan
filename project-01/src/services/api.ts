@@ -5,6 +5,20 @@ export interface User {
   email: string;
   name: string;
   profile?: Profile;
+  isPremium?: boolean;
+}
+
+export interface Recipe {
+  id: number;
+  name: string;
+  time: string;
+  servings: number;
+  image: string;
+}
+
+export interface RecipeData {
+  saved: Recipe[];
+  created: Recipe[];
   is_premium?: boolean;
 }
 
@@ -206,12 +220,14 @@ class ApiService {
     return response.json();
   }
 
+  async getRecipes(): Promise<RecipeData> {
   async getRecipes(): Promise<Recipe[]> {
     const response = await fetch(`${API_BASE_URL}/recipes`, {
       headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
+      throw new Error('Failed to get recipes');
       const error = await response.json();
       throw new Error(error.error || 'Failed to get recipes');
     }
@@ -219,6 +235,7 @@ class ApiService {
     return response.json();
   }
 
+  async saveRecipes(recipes: RecipeData): Promise<{ message: string }> {
   async saveRecipe(name: string, ingredients: string, instructions: string): Promise<Recipe> {
     const response = await fetch(`${API_BASE_URL}/recipes`, {
       method: 'POST',
@@ -226,6 +243,11 @@ class ApiService {
         'Content-Type': 'application/json',
         ...this.getAuthHeaders(),
       },
+      body: JSON.stringify(recipes),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save recipes');
       body: JSON.stringify({ name, ingredients, instructions }),
     });
 

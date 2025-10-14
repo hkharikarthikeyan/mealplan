@@ -157,6 +157,7 @@ export const Settings = () => {
       />
       
       <main className="px-4 py-6 max-w-2xl mx-auto space-y-6">
+        {/* Profile Section - Hidden for guests */}
         {/* Profile Section - Limited for guests */}
         {!isGuest && (
           <Card className="p-6">
@@ -183,6 +184,7 @@ export const Settings = () => {
               Guest Mode
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
+              You're using guest mode with limited features. Sign up to unlock themes, profile management, and more!
               You're using guest mode with limited features. Sign up to unlock all features!
             </p>
             <Button 
@@ -219,6 +221,13 @@ export const Settings = () => {
                   className="w-full mt-2 h-10 px-3 rounded-md border border-input bg-card text-card-foreground"
                 >
                   <option value="light">Default Theme</option>
+                  <option value="morning-dew">Morning Dew</option>
+                  <option value="clean-minimalist">Clean & Minimalist</option>
+                  <option value="cozy-rustic">Cozy & Rustic</option>
+                  <option value="vibrant-healthy">Vibrant & Healthy</option>
+                  <option value="gourmet-elegant">Gourmet & Elegant</option>
+                  <option value="playful-fun">Playful & Fun</option>
+                  <option value="comic">Comic</option>
                   {isAuthenticated && (
                     <>
                       <option value="morning-dew">Morning Dew</option>

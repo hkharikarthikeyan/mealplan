@@ -36,6 +36,8 @@ export const Profile = () => {
 
     if (user) {
       loadProfile();
+    } else {
+      setLoading(false);
     }
   }, [user]);
   
@@ -56,6 +58,7 @@ export const Profile = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
+  // Guest mode - show sign up prompt
   if (isGuest) {
     return (
       <div className="min-h-screen bg-background pb-20 sm:pb-24">
@@ -67,6 +70,29 @@ export const Profile = () => {
         />
         
         <main className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto">
+          <Card className="p-8 text-center">
+            <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4">Guest Mode</h2>
+            <p className="text-muted-foreground mb-6">
+              You're currently using guest mode with limited features. Sign up to unlock your full profile and save your meal plans!
+            </p>
+            <div className="space-y-3">
+              <Button 
+                className="w-full" 
+                onClick={() => navigate('/auth')}
+              >
+                Sign Up for More Features
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => navigate('/home')}
+              >
+                Continue as Guest
+              </Button>
+            </div>
           <Card className="p-8 text-center bg-muted/30">
             <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <User className="w-12 h-12 text-primary" />

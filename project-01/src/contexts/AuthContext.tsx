@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .then(response => {
           setUser(response.user);
           setIsAuthenticated(true);
+          localStorage.removeItem('guestMode');
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     localStorage.removeItem('token');
     localStorage.removeItem('guestMode');
+    localStorage.removeItem('savedRecipes');
     setUser(null);
     setIsAuthenticated(false);
     setIsGuest(false);
