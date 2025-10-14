@@ -5,6 +5,20 @@ export interface User {
   email: string;
   name: string;
   profile?: Profile;
+  isPremium?: boolean;
+}
+
+export interface Recipe {
+  id: number;
+  name: string;
+  time: string;
+  servings: number;
+  image: string;
+}
+
+export interface RecipeData {
+  saved: Recipe[];
+  created: Recipe[];
 }
 
 export interface Profile {
@@ -192,6 +206,35 @@ class ApiService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to delete client');
+    }
+
+    return response.json();
+  }
+
+  async getRecipes(): Promise<RecipeData> {
+    const response = await fetch(`${API_BASE_URL}/recipes`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get recipes');
+    }
+
+    return response.json();
+  }
+
+  async saveRecipes(recipes: RecipeData): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/recipes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify(recipes),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save recipes');
     }
 
     return response.json();

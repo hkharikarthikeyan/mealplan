@@ -293,6 +293,7 @@ def change_password():
 
 # Client management endpoints
 clients_collection = db.clients
+recipes_collection = db.recipes
 
 @app.route('/api/clients', methods=['GET'])
 def get_clients():
@@ -359,6 +360,38 @@ def delete_client(client_id):
         return jsonify({'error': 'Client not found'}), 404
     
     return jsonify({'message': 'Client deleted successfully'}), 200
+
+# Recipe management endpoints for premium users
+@app.route('/api/recipes', methods=['GET'])
+@require_auth
+def get_recipes():
+    recipes = recipes_collection.find_one({'user_id': request.user_id})
+    if not recipes:
+        return jsonify({'saved': [], 'created': []}), 200
+    
+    return jsonify({
+        'saved': recipes.get('saved', []),
+        'created': recipes.get('created', [])
+    }), 200
+
+@app.route('/api/recipes', methods=['POST'])
+@require_auth
+def save_recipes():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    recipes_collection.update_one(
+        {'user_id': request.user_id},
+        {'$set': {
+            'saved': data.get('saved', []),
+            'created': data.get('created', []),
+            'updated_at': datetime.datetime.utcnow()
+        }},
+        upsert=True
+    )
+    
+    return jsonify({'message': 'Recipes saved successfully'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

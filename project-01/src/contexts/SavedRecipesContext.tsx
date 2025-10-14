@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { apiService } from '@/services/api';
 
 interface Recipe {
   id: number;
@@ -21,27 +23,56 @@ interface SavedRecipesContextType {
 const SavedRecipesContext = createContext<SavedRecipesContextType | undefined>(undefined);
 
 export const SavedRecipesProvider = ({ children }: { children: ReactNode }) => {
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>(() => {
-    // Load from localStorage on initial load
-    const saved = localStorage.getItem('savedRecipes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user, isAuthenticated } = useAuth();
+  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const [createdRecipes, setCreatedRecipes] = useState<Recipe[]>([]);
 
-  const [createdRecipes, setCreatedRecipes] = useState<Recipe[]>(() => {
-    // Load created recipes from localStorage
-    const created = localStorage.getItem('createdRecipes');
-    return created ? JSON.parse(created) : [];
-  });
-
-  // Save to localStorage whenever savedRecipes changes
+  // Load recipes based on user type
   useEffect(() => {
-    localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
-  }, [savedRecipes]);
+    const loadRecipes = async () => {
+      if (isAuthenticated && user?.isPremium) {
+        // Premium users: load from database
+        try {
+          const recipes = await apiService.getRecipes();
+          setSavedRecipes(recipes.saved || []);
+          setCreatedRecipes(recipes.created || []);
+        } catch (error) {
+          console.error('Failed to load recipes from database:', error);
+        }
+      } else {
+        // Free users: load from localStorage
+        const saved = localStorage.getItem('savedRecipes');
+        const created = localStorage.getItem('createdRecipes');
+        setSavedRecipes(saved ? JSON.parse(saved) : []);
+        setCreatedRecipes(created ? JSON.parse(created) : []);
+      }
+    };
 
-  // Save to localStorage whenever createdRecipes changes
+    loadRecipes();
+  }, [isAuthenticated, user]);
+
+  // Save recipes based on user type
+  const saveToStorage = async (savedRecipes: Recipe[], createdRecipes: Recipe[]) => {
+    if (isAuthenticated && user?.isPremium) {
+      // Premium users: save to database
+      try {
+        await apiService.saveRecipes({ saved: savedRecipes, created: createdRecipes });
+      } catch (error) {
+        console.error('Failed to save recipes to database:', error);
+      }
+    } else {
+      // Free users: save to localStorage
+      localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
+      localStorage.setItem('createdRecipes', JSON.stringify(createdRecipes));
+    }
+  };
+
+  // Save whenever recipes change
   useEffect(() => {
-    localStorage.setItem('createdRecipes', JSON.stringify(createdRecipes));
-  }, [createdRecipes]);
+    if (savedRecipes.length > 0 || createdRecipes.length > 0) {
+      saveToStorage(savedRecipes, createdRecipes);
+    }
+  }, [savedRecipes, createdRecipes, isAuthenticated, user]);
 
   const saveRecipe = (recipe: Recipe) => {
     setSavedRecipes(prev => {

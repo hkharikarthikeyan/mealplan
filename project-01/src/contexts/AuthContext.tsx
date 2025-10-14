@@ -22,11 +22,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const guestMode = localStorage.getItem('guestMode');
+    
     if (token) {
       apiService.verifyToken()
         .then(response => {
           setUser(response.user);
           setIsAuthenticated(true);
+          localStorage.removeItem('guestMode');
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -34,6 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .finally(() => {
           setLoading(false);
         });
+    } else if (guestMode === 'true') {
+      setIsGuest(true);
+      setLoading(false);
     } else {
       setLoading(false);
     }
@@ -57,12 +63,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('guestMode');
+    localStorage.removeItem('savedRecipes');
     setUser(null);
     setIsAuthenticated(false);
     setIsGuest(false);
   };
 
   const continueAsGuest = () => {
+    localStorage.setItem('guestMode', 'true');
     setIsGuest(true);
     setIsAuthenticated(false);
   };
