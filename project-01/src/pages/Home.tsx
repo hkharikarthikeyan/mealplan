@@ -22,6 +22,7 @@ const mealTimes = [
 ];
 
 const weeks = ['Week - 1', 'Week - 2', 'Week - 3', 'Week - 4'];
+const guestWeeks = ['Week - 1', 'Week - 2'];
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 interface Person {
@@ -55,7 +56,7 @@ const initialMeals: Record<string, Meal[]> = {
 };
 
 export const Home = () => {
-  const { isGuest } = useAuth();
+  const { isGuest, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [selectedWeek, setSelectedWeek] = useState('Week - 1');
   const [selectedFood, setSelectedFood] = useState<number | ''>('');
@@ -271,97 +272,112 @@ export const Home = () => {
           </Button>
         </div>
 
-        {/* Quick Add Button */}
-        <Button 
-          variant="outline"
-          className="w-full border-dashed border-2 py-3 text-muted-foreground hover:text-foreground hover:border-primary"
-          onClick={() => setQuickAddOpen(true)}
-        >
-          <Star className="w-4 h-4 mr-2" />
-          Quick Add Today's Meal
-        </Button>
-
-        {/* Week Dropdown */}
-        <div className="relative">
-          <Button
-            variant="outline"
-            className="w-full justify-between bg-muted/50 border-border rounded-full py-4 text-muted-foreground"
-            onClick={() => setWeekDropdownOpen(!weekDropdownOpen)}
-          >
-            {selectedWeek || 'Week'}
-            {weekDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-          {weekDropdownOpen && (
-            <Card className="absolute top-full left-0 right-0 mt-2 z-10 bg-slate-800 border-slate-700">
-              <div className="p-2 space-y-1">
-                {weeks.map((week) => (
-                  <Button
-                    key={week}
-                    variant="ghost"
-                    className="w-full justify-start text-white hover:bg-slate-700 border-b border-slate-600 last:border-b-0 rounded-none py-3"
-                    onClick={() => {
-                      setSelectedWeek(week);
-                      setWeekDropdownOpen(false);
-                    }}
-                  >
-                    {week}
-                  </Button>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Food for Dropdown */}
-        <div className="relative">
-          <Button
-            variant="outline"
-            className="w-full justify-between bg-muted/50 border-border rounded-full py-4 text-muted-foreground"
-            onClick={() => setFoodDropdownOpen(!foodDropdownOpen)}
-          >
-            {selectedFood || 'Food for'}
-            {foodDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-          {foodDropdownOpen && (
-            <Card className="absolute top-full left-0 right-0 mt-2 z-10 bg-slate-800 border-slate-700">
-              <div className="p-2 space-y-1">
-                {people.map((person) => (
-                  <div
-                    key={person.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => { setSelectedFood(person.name); setFoodDropdownOpen(false); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedFood(person.name); setFoodDropdownOpen(false); } }}
-                    className={`flex items-center justify-between p-3 border-b border-slate-600 last:border-b-0 cursor-pointer ${selectedFood === person.name ? 'bg-muted/20' : ''}`}
-                  >
-                    <div className="flex-1">
-                      <span className="text-white font-medium">{person.name}</span>
-                      {person.preferences && (
-                        <p className="text-xs text-gray-300">Likes: {person.preferences}</p>
-                      )}
-                      {person.allergies && (
-                        <p className="text-xs text-red-300">Allergies: {person.allergies}</p>
-                      )}
-                    </div>
+        {/* Week, Food for Dropdowns and Quick Add Button in Single Row */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* Week Dropdown */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="w-full justify-between bg-muted/50 border-border rounded-full py-4 text-muted-foreground"
+              onClick={() => setWeekDropdownOpen(!weekDropdownOpen)}
+            >
+              {selectedWeek || 'Week'}
+              {weekDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+            {weekDropdownOpen && (
+              <Card className="absolute top-full left-0 right-0 mt-2 z-10 bg-slate-800 border-slate-700">
+                <div className="p-2 space-y-1">
+                  {(isGuest ? guestWeeks : weeks).map((week) => (
                     <Button
+                      key={week}
                       variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-red-600"
-                      onClick={(e) => { e.stopPropagation(); handleRemovePerson(person.id); }}
+                      className="w-full justify-start text-white hover:bg-slate-700 border-b border-slate-600 last:border-b-0 rounded-none py-3"
+                      onClick={() => {
+                        setSelectedWeek(week);
+                        setWeekDropdownOpen(false);
+                      }}
                     >
-                      <Trash2 className="w-4 h-4 text-red-400" />
+                      {week}
                     </Button>
-                  </div>
-                ))}
-                <Button
-                  className="w-full mt-2 bg-white text-slate-800 hover:bg-gray-200 rounded-full"
-                  onClick={() => setAddPersonOpen(true)}
-                >
-                  Add Person
-                </Button>
-              </div>
-            </Card>
-          )}
+                  ))}
+                  {isGuest && (
+                    <div className="p-3 text-center border-t border-slate-600">
+                      <p className="text-xs text-gray-400 mb-2">Want more weeks?</p>
+                      <Button
+                        size="sm"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        onClick={() => navigate('/auth')}
+                      >
+                        Sign Up for More
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Food for Dropdown */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="w-full justify-between bg-muted/50 border-border rounded-full py-4 text-muted-foreground"
+              onClick={() => setFoodDropdownOpen(!foodDropdownOpen)}
+            >
+              {selectedFood || 'Food for'}
+              {foodDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+            {foodDropdownOpen && (
+              <Card className="absolute top-full left-0 right-0 mt-2 z-10 bg-slate-800 border-slate-700">
+                <div className="p-2 space-y-1">
+                  {people.map((person) => (
+                    <div
+                      key={person.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => { setSelectedFood(person.name); setFoodDropdownOpen(false); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedFood(person.name); setFoodDropdownOpen(false); } }}
+                      className={`flex items-center justify-between p-3 border-b border-slate-600 last:border-b-0 cursor-pointer ${selectedFood === person.name ? 'bg-muted/20' : ''}`}
+                    >
+                      <div className="flex-1">
+                        <span className="text-white font-medium">{person.name}</span>
+                        {person.preferences && (
+                          <p className="text-xs text-gray-300">Likes: {person.preferences}</p>
+                        )}
+                        {person.allergies && (
+                          <p className="text-xs text-red-300">Allergies: {person.allergies}</p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-red-600"
+                        onClick={(e) => { e.stopPropagation(); handleRemovePerson(person.id); }}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    className="w-full mt-2 bg-white text-slate-800 hover:bg-gray-200 rounded-full"
+                    onClick={() => setAddPersonOpen(true)}
+                  >
+                    Add Person
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          {/* Quick Add Button */}
+          <Button 
+            variant="outline"
+            className="border-dashed border-2 py-4 text-muted-foreground hover:text-foreground hover:border-primary rounded-full"
+            onClick={() => setQuickAddOpen(true)}
+          >
+            <Star className="w-4 h-4 mr-1" />
+            Quick Add
+          </Button>
         </div>
 
         {/* Main Content Area */}

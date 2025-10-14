@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   profile?: Profile;
+  is_premium?: boolean;
 }
 
 export interface Profile {
@@ -22,6 +23,14 @@ export interface Client {
   status: string;
   created_at: string;
   last_updated: string;
+}
+
+export interface Recipe {
+  _id: string;
+  name: string;
+  ingredients: string;
+  instructions: string;
+  created_at: string;
 }
 
 export interface AuthResponse {
@@ -192,6 +201,65 @@ class ApiService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to delete client');
+    }
+
+    return response.json();
+  }
+
+  async getRecipes(): Promise<Recipe[]> {
+    const response = await fetch(`${API_BASE_URL}/recipes`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get recipes');
+    }
+
+    return response.json();
+  }
+
+  async saveRecipe(name: string, ingredients: string, instructions: string): Promise<Recipe> {
+    const response = await fetch(`${API_BASE_URL}/recipes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify({ name, ingredients, instructions }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save recipe');
+    }
+
+    return response.json();
+  }
+
+  async deleteRecipe(recipeId: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/recipes/${recipeId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete recipe');
+    }
+
+    return response.json();
+  }
+
+  async upgradeToPremium(): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/premium/upgrade`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upgrade to premium');
     }
 
     return response.json();

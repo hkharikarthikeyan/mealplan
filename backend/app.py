@@ -293,6 +293,7 @@ def change_password():
 
 # Client management endpoints
 clients_collection = db.clients
+recipes_collection = db.recipes
 
 @app.route('/api/clients', methods=['GET'])
 def get_clients():
@@ -359,6 +360,74 @@ def delete_client(client_id):
         return jsonify({'error': 'Client not found'}), 404
     
     return jsonify({'message': 'Client deleted successfully'}), 200
+
+# Recipe management endpoints (Premium feature)
+@app.route('/api/recipes', methods=['GET'])
+@require_auth
+def get_recipes():
+    user = users_collection.find_one({'_id': ObjectId(request.user_id)})
+    if not user or not user.get('is_premium', False):
+        return jsonify({'error': 'Premium subscription required'}), 403
+    
+    recipes = list(recipes_collection.find({'user_id': request.user_id}))
+    for recipe in recipes:
+        recipe['_id'] = str(recipe['_id'])
+    
+    return jsonify(recipes), 200
+
+@app.route('/api/recipes', methods=['POST'])
+@require_auth
+def save_recipe():
+    user = users_collection.find_one({'_id': ObjectId(request.user_id)})
+    if not user or not user.get('is_premium', False):
+        return jsonify({'error': 'Premium subscription required'}), 403
+    
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Recipe name required'}), 400
+    
+    recipe_data = {
+        'user_id': request.user_id,
+        'name': sanitize_input(data['name']),
+        'ingredients': sanitize_input(data.get('ingredients', '')),
+        'instructions': sanitize_input(data.get('instructions', '')),
+        'created_at': datetime.datetime.utcnow()
+    }
+    
+    result = recipes_collection.insert_one(recipe_data)
+    recipe_data['_id'] = str(result.inserted_id)
+    
+    return jsonify(recipe_data), 201
+
+@app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
+@require_auth
+def delete_recipe(recipe_id):
+    user = users_collection.find_one({'_id': ObjectId(request.user_id)})
+    if not user or not user.get('is_premium', False):
+        return jsonify({'error': 'Premium subscription required'}), 403
+    
+    try:
+        result = recipes_collection.delete_one({
+            '_id': ObjectId(recipe_id),
+            'user_id': request.user_id
+        })
+    except Exception:
+        return jsonify({'error': 'Invalid recipe ID'}), 400
+    
+    if result.deleted_count == 0:
+        return jsonify({'error': 'Recipe not found'}), 404
+    
+    return jsonify({'message': 'Recipe deleted successfully'}), 200
+
+@app.route('/api/premium/upgrade', methods=['POST'])
+@require_auth
+def upgrade_to_premium():
+    users_collection.update_one(
+        {'_id': ObjectId(request.user_id)},
+        {'$set': {'is_premium': True, 'premium_date': datetime.datetime.utcnow()}}
+    )
+    
+    return jsonify({'message': 'Upgraded to premium successfully'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

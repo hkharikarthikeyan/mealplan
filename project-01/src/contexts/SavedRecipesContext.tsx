@@ -1,82 +1,124 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { apiService } from '@/services/api';
 
 interface Recipe {
-  id: number;
+  id: string;
   name: string;
-  time: string;
-  servings: number;
-  image: string;
+  ingredients: string;
+  instructions: string;
+  created_at?: string;
 }
 
 interface SavedRecipesContextType {
   savedRecipes: Recipe[];
-  createdRecipes: Recipe[];
-  saveRecipe: (recipe: Recipe) => void;
-  unsaveRecipe: (recipeId: number) => void;
-  isRecipeSaved: (recipeId: number) => boolean;
-  createRecipe: (recipe: Recipe) => void;
-  deleteCreatedRecipe: (recipeId: number) => void;
+  loading: boolean;
+  isPremium: boolean;
+  saveRecipe: (recipe: Omit<Recipe, 'id' | 'created_at'>) => Promise<void>;
+  deleteRecipe: (recipeId: string) => Promise<void>;
+  isRecipeSaved: (recipeId: string) => boolean;
+  clearLocalData: () => void;
 }
 
 const SavedRecipesContext = createContext<SavedRecipesContextType | undefined>(undefined);
 
 export const SavedRecipesProvider = ({ children }: { children: ReactNode }) => {
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>(() => {
-    // Load from localStorage on initial load
-    const saved = localStorage.getItem('savedRecipes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user, isAuthenticated } = useAuth();
+  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(false);
+  const isPremium = user?.is_premium || false;
 
-  const [createdRecipes, setCreatedRecipes] = useState<Recipe[]>(() => {
-    // Load created recipes from localStorage
-    const created = localStorage.getItem('createdRecipes');
-    return created ? JSON.parse(created) : [];
-  });
-
-  // Save to localStorage whenever savedRecipes changes
+  // Load recipes on authentication change
   useEffect(() => {
-    localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
-  }, [savedRecipes]);
-
-  // Save to localStorage whenever createdRecipes changes
-  useEffect(() => {
-    localStorage.setItem('createdRecipes', JSON.stringify(createdRecipes));
-  }, [createdRecipes]);
-
-  const saveRecipe = (recipe: Recipe) => {
-    setSavedRecipes(prev => {
-      if (prev.find(r => r.id === recipe.id)) {
-        return prev;
+    const loadRecipes = async () => {
+      if (!isAuthenticated) {
+        setSavedRecipes([]);
+        return;
       }
-      return [...prev, recipe];
-    });
+
+      if (isPremium) {
+        // Premium users: load from database
+        try {
+          setLoading(true);
+          const recipes = await apiService.getRecipes();
+          setSavedRecipes(recipes.map(r => ({ ...r, id: r._id })));
+        } catch (error) {
+          console.error('Failed to load recipes:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Free users: load from localStorage
+        const saved = localStorage.getItem(`savedRecipes_${user?.id}`);
+        setSavedRecipes(saved ? JSON.parse(saved) : []);
+      }
+    };
+
+    loadRecipes();
+  }, [isAuthenticated, isPremium, user?.id]);
+
+  // Save to localStorage for free users
+  useEffect(() => {
+    if (isAuthenticated && !isPremium && user?.id) {
+      localStorage.setItem(`savedRecipes_${user.id}`, JSON.stringify(savedRecipes));
+    }
+  }, [savedRecipes, isAuthenticated, isPremium, user?.id]);
+
+  const saveRecipe = async (recipe: Omit<Recipe, 'id' | 'created_at'>) => {
+    if (isPremium) {
+      // Premium users: save to database
+      try {
+        const savedRecipe = await apiService.saveRecipe(recipe.name, recipe.ingredients, recipe.instructions);
+        setSavedRecipes(prev => [...prev, { ...savedRecipe, id: savedRecipe._id }]);
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      // Free users: save to localStorage
+      const newRecipe: Recipe = {
+        ...recipe,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString()
+      };
+      setSavedRecipes(prev => [...prev, newRecipe]);
+    }
   };
 
-  const unsaveRecipe = (recipeId: number) => {
-    setSavedRecipes(prev => prev.filter(r => r.id !== recipeId));
+  const deleteRecipe = async (recipeId: string) => {
+    if (isPremium) {
+      // Premium users: delete from database
+      try {
+        await apiService.deleteRecipe(recipeId);
+        setSavedRecipes(prev => prev.filter(r => r.id !== recipeId));
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      // Free users: delete from localStorage
+      setSavedRecipes(prev => prev.filter(r => r.id !== recipeId));
+    }
   };
 
-  const isRecipeSaved = (recipeId: number) => {
+  const isRecipeSaved = (recipeId: string) => {
     return savedRecipes.some(r => r.id === recipeId);
   };
 
-  const createRecipe = (recipe: Recipe) => {
-    setCreatedRecipes(prev => [...prev, recipe]);
-  };
-
-  const deleteCreatedRecipe = (recipeId: number) => {
-    setCreatedRecipes(prev => prev.filter(r => r.id !== recipeId));
+  const clearLocalData = () => {
+    if (user?.id) {
+      localStorage.removeItem(`savedRecipes_${user.id}`);
+    }
+    setSavedRecipes([]);
   };
 
   return (
     <SavedRecipesContext.Provider value={{ 
-      savedRecipes, 
-      createdRecipes,
+      savedRecipes,
+      loading,
+      isPremium,
       saveRecipe, 
-      unsaveRecipe, 
+      deleteRecipe, 
       isRecipeSaved,
-      createRecipe,
-      deleteCreatedRecipe
+      clearLocalData
     }}>
       {children}
     </SavedRecipesContext.Provider>

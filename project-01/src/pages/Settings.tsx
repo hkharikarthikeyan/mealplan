@@ -17,7 +17,7 @@ import { apiService } from '@/services/api';
 export const Settings = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isGuest, isAuthenticated } = useAuth();
   
   // Settings state
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -157,57 +157,84 @@ export const Settings = () => {
       />
       
       <main className="px-4 py-6 max-w-2xl mx-auto space-y-6">
-        {/* Profile Section */}
-        <Card className="p-6">
-          <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Profile
-          </h3>
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" onClick={() => setProfileDialogOpen(true)}>
-              Edit Profile
-            </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => setPasswordDialogOpen(true)}>
-              Change Password
-            </Button>
-          </div>
-        </Card>
+        {/* Profile Section - Limited for guests */}
+        {!isGuest && (
+          <Card className="p-6">
+            <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Profile
+            </h3>
+            <div className="space-y-3">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setProfileDialogOpen(true)}>
+                Edit Profile
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setPasswordDialogOpen(true)}>
+                Change Password
+              </Button>
+            </div>
+          </Card>
+        )}
 
-        {/* Appearance Section */}
-        <Card className="p-6">
-          <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
-            <Sun className="w-5 h-5" />
-            Appearance
-          </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="dark-mode">Dark Mode</Label>
-              <Switch 
-                id="dark-mode" 
-                checked={isDarkMode}
-                onCheckedChange={handleDarkModeToggle}
-              />
+        {/* Guest Mode Notice */}
+        {isGuest && (
+          <Card className="p-6 bg-muted/30">
+            <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Guest Mode
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              You're using guest mode with limited features. Sign up to unlock all features!
+            </p>
+            <Button 
+              className="w-full" 
+              onClick={() => navigate('/auth')}
+            >
+              Sign Up for Full Access
+            </Button>
+          </Card>
+        )}
+
+        {/* Appearance Section - Hidden for guests */}
+        {!isGuest && (
+          <Card className="p-6">
+            <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
+              <Sun className="w-5 h-5" />
+              Appearance
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="dark-mode">Dark Mode</Label>
+                <Switch 
+                  id="dark-mode" 
+                  checked={isDarkMode}
+                  onCheckedChange={handleDarkModeToggle}
+                />
+              </div>
+              <div>
+                <Label htmlFor="theme-select">Theme</Label>
+                <select
+                  id="theme-select"
+                  value={baseTheme}
+                  onChange={(e) => handleThemeChange(e.target.value)}
+                  className="w-full mt-2 h-10 px-3 rounded-md border border-input bg-card text-card-foreground"
+                >
+                  <option value="light">Default Theme</option>
+                  {isAuthenticated && (
+                    <>
+                      <option value="morning-dew">Morning Dew</option>
+                      <option value="clean-minimalist">Clean & Minimalist</option>
+                      <option value="cozy-rustic">Cozy & Rustic</option>
+                      <option value="vibrant-healthy">Vibrant & Healthy</option>
+                      <option value="gourmet-elegant">Gourmet & Elegant</option>
+                      <option value="playful-fun">Playful & Fun</option>
+                      <option value="comic">Comic</option>
+                    </>
+                  )}
+                </select>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="theme-select">Theme</Label>
-              <select
-                id="theme-select"
-                value={baseTheme}
-                onChange={(e) => handleThemeChange(e.target.value)}
-                className="w-full mt-2 h-10 px-3 rounded-md border border-input bg-card text-card-foreground"
-              >
-                <option value="light">Default Theme</option>
-                <option value="morning-dew">Morning Dew</option>
-                <option value="clean-minimalist">Clean & Minimalist</option>
-                <option value="cozy-rustic">Cozy & Rustic</option>
-                <option value="vibrant-healthy">Vibrant & Healthy</option>
-                <option value="gourmet-elegant">Gourmet & Elegant</option>
-                <option value="playful-fun">Playful & Fun</option>
-                <option value="comic">Comic</option>
-              </select>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* Notifications Section */}
         <Card className="p-6">

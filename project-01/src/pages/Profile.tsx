@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const Profile = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [profile, setProfile] = useState<ProfileType>({
     name: '',
     phone: '',
@@ -54,6 +54,68 @@ export const Profile = () => {
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+  }
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen bg-background pb-20 sm:pb-24">
+        <Header 
+          title="Profile" 
+          showProfile={false}
+          showBackButton={true}
+          onBackClick={() => navigate(-1)}
+        />
+        
+        <main className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto">
+          <Card className="p-8 text-center bg-muted/30">
+            <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-12 h-12 text-primary" />
+            </div>
+            
+            <h2 className="text-2xl font-bold mb-4">Guest Mode</h2>
+            <p className="text-muted-foreground mb-6">
+              You're currently using guest mode with limited features. Sign up to create and manage your profile!
+            </p>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+                <span>Create personalized meal plans</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+                <span>Save dietary preferences and allergies</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+                <span>Access all weeks and themes</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+                <span>Sync data across devices</span>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full h-12 mb-4" 
+              onClick={() => navigate('/auth')}
+            >
+              Sign Up for Full Access
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full h-12" 
+              onClick={() => navigate('/more')}
+            >
+              Continue as Guest
+            </Button>
+          </Card>
+        </main>
+
+        <BottomNav />
+      </div>
+    );
   }
 
   return (
