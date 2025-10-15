@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SavedRecipesProvider } from "@/contexts/SavedRecipesContext";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
+import { useStatusBar } from "@/hooks/use-status-bar";
 
 // Pages
 import { Splash } from "./pages/Splash";
@@ -73,6 +74,20 @@ const AppRoutes = () => {
   );
 };
 
+const AppContent = () => {
+  const { theme } = useTheme();
+  const isDark = theme?.includes('dark') || theme === 'dark';
+  
+  // Configure status bar based on theme
+  useStatusBar(isDark);
+  
+  return (
+    <div className="min-h-screen bg-background text-foreground antialiased">
+      <AppRoutes />
+    </div>
+  );
+};
+
 const App = () => {
   // Set viewport meta tag for proper mobile rendering
   React.useEffect(() => {
@@ -118,9 +133,7 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <SavedRecipesProvider>
-                <div className="min-h-screen bg-background text-foreground antialiased">
-                  <AppRoutes />
-                </div>
+                <AppContent />
               </SavedRecipesProvider>
             </AuthProvider>
           </BrowserRouter>

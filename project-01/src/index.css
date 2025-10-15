@@ -616,6 +616,24 @@ All colors MUST be HSL.
     padding-top: env(safe-area-inset-top);
   }
 
+  /* Capacitor status bar support */
+  .capacitor-app {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Status bar overlay fix */
+  .status-bar-safe {
+    padding-top: max(env(safe-area-inset-top), 20px);
+  }
+
+  /* Header with status bar consideration */
+  .header-with-status {
+    padding-top: calc(env(safe-area-inset-top) + 1rem);
+  }
+
   /* Better text rendering */
   body {
     -webkit-font-smoothing: antialiased;
