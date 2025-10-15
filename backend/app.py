@@ -63,9 +63,20 @@ def add_security_headers(response):
     return response
 
 # MongoDB connection
-client = MongoClient(os.getenv('MONGODB_URI'))
-db = client.mealpal
-users_collection = db.users
+try:
+    mongodb_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+    client = MongoClient(mongodb_uri)
+    # Test connection
+    client.admin.command('ping')
+    db = client.mealpal
+    users_collection = db.users
+    print(f"Connected to MongoDB: {mongodb_uri}")
+except Exception as e:
+    print(f"MongoDB connection error: {str(e)}")
+    # Use local MongoDB as fallback
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client.mealpal
+    users_collection = db.users
 
 JWT_SECRET = os.getenv('JWT_SECRET')
 
@@ -131,7 +142,59 @@ def health_check():
 
 @app.route('/api/test')
 def test_connection():
-    return jsonify({'message': 'Backend connection successful', 'status': 'ok'})
+    try:
+        # Test MongoDB connection
+        user_count = users_collection.count_documents({})
+        return jsonify({
+            'message': 'Backend connection successful', 
+            'status': 'ok',
+            'mongodb_connected': True,
+            'user_count': user_count
+        })
+    except Exception as e:
+        return jsonify({
+            'message': 'Backend connected but MongoDB error',
+            'status': 'partial',
+            'mongodb_connected': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/create-test-user', methods=['POST'])
+def create_test_user():
+    try:
+        # Create a test user for debugging
+        test_email = 'test@example.com'
+        test_password = 'password123'
+        
+        # Check if test user exists
+        existing_user = users_collection.find_one({'email': test_email})
+        if existing_user:
+            return jsonify({'message': 'Test user already exists', 'email': test_email}), 200
+        
+        # Create test user
+        hashed_password = bcrypt.hashpw(test_password.encode('utf-8'), bcrypt.gensalt())
+        user_data = {
+            'email': test_email,
+            'password': hashed_password,
+            'profile': {
+                'name': 'Test User',
+                'phone': '',
+                'bio': '',
+                'dietary_preferences': []
+            },
+            'created_at': datetime.datetime.utcnow()
+        }
+        
+        result = users_collection.insert_one(user_data)
+        return jsonify({
+            'message': 'Test user created',
+            'email': test_email,
+            'password': test_password,
+            'user_id': str(result.inserted_id)
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to create test user: {str(e)}'}), 500
 
 @app.route('/api/auth/register', methods=['POST'])
 @limiter.limit("5 per minute")
@@ -187,34 +250,40 @@ def register():
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'error': 'Email and password required'}), 400
-    
-    email = data['email'].lower()
-    password = data['password']
-    
-    # Find user
-    user = users_collection.find_one({'email': email})
-    if not user:
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    # Check password
-    if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    token = generate_token(user['_id'])
-    
-    return jsonify({
-        'message': 'Login successful',
-        'token': token,
-        'user': {
-            'id': str(user['_id']),
-            'email': user['email'],
-            'name': user.get('name', '')
-        }
-    }), 200
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({'error': 'Email and password required'}), 400
+        
+        email = sanitize_input(data['email']).lower()
+        password = sanitize_input(data['password'])
+        
+        # Find user
+        user = users_collection.find_one({'email': email})
+        if not user:
+            return jsonify({'error': 'Invalid credentials'}), 401
+        
+        # Check password
+        if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
+            return jsonify({'error': 'Invalid credentials'}), 401
+        
+        token = generate_token(user['_id'])
+        
+        return jsonify({
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': str(user['_id']),
+                'email': user['email'],
+                'name': user.get('profile', {}).get('name', ''),
+                'profile': user.get('profile', {})
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({'error': 'Login failed'}), 500
 
 @app.route('/api/auth/verify', methods=['GET'])
 def verify():
@@ -443,6 +512,60 @@ def delete_recipe(recipe_id):
         return jsonify({'error': 'Recipe not found'}), 404
     
     return jsonify({'message': 'Recipe deleted successfully'}), 200
+
+@app.route('/api/home/dashboard', methods=['GET'])
+@require_auth
+def get_dashboard_data():
+    try:
+        user = users_collection.find_one({'_id': ObjectId(request.user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get user stats
+        total_recipes = recipes_collection.count_documents({'user_id': request.user_id})
+        total_clients = clients_collection.count_documents({'nutritionist_id': request.user_id})
+        
+        # Get recent recipes (last 5)
+        recent_recipes = list(recipes_collection.find(
+            {'user_id': request.user_id}
+        ).sort('created_at', -1).limit(5))
+        
+        for recipe in recent_recipes:
+            recipe['_id'] = str(recipe['_id'])
+            recipe['created_at'] = recipe['created_at'].isoformat()
+        
+        # Get recent clients (last 3)
+        recent_clients = list(clients_collection.find(
+            {'nutritionist_id': request.user_id}
+        ).sort('created_at', -1).limit(3))
+        
+        for client in recent_clients:
+            client['_id'] = str(client['_id'])
+            client['created_at'] = client['created_at'].isoformat()
+        
+        return jsonify({
+            'user': {
+                'name': user.get('profile', {}).get('name', 'User'),
+                'email': user['email'],
+                'is_premium': user.get('is_premium', False)
+            },
+            'stats': {
+                'total_recipes': total_recipes,
+                'total_clients': total_clients,
+                'active_plans': total_clients
+            },
+            'recent_recipes': recent_recipes,
+            'recent_clients': recent_clients,
+            'quick_actions': [
+                {'title': 'Add Recipe', 'icon': 'plus', 'route': '/recipe-builder'},
+                {'title': 'View Recipes', 'icon': 'book', 'route': '/recipes'},
+                {'title': 'Add Client', 'icon': 'user-plus', 'route': '/client-view'},
+                {'title': 'Discover', 'icon': 'search', 'route': '/discover'}
+            ]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to load dashboard data'}), 500
 
 @app.route('/api/premium/upgrade', methods=['POST'])
 @require_auth

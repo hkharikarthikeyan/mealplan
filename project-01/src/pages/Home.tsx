@@ -59,7 +59,7 @@ export const Home = () => {
   const { isGuest, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [selectedWeek, setSelectedWeek] = useState('Week - 1');
-  const [selectedFood, setSelectedFood] = useState<number | ''>('');
+  const [selectedFood, setSelectedFood] = useState<string | number>('');
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false);
   const [foodDropdownOpen, setFoodDropdownOpen] = useState(false);
   const [meals, setMeals] = useState(initialMeals);
